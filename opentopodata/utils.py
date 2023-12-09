@@ -57,12 +57,19 @@ def base_floor(x, base=1):
     return base * np.floor(x / base)
 
 
-def decimal_base_floor(x, base=1):
-    """Round decimal down to nearest multiple of base."""
+def decimal_base_floor(x, base=1, offset=0):
+    """Round decimal down to nearest multiple of base, 
+    allowing for an offset from base of 0."""
     if not isinstance(base, (Decimal, int)):
         raise ValueError("Base must be an integer or decimal.")
-    integer = math.floor(x / float(base))
-    return base * Decimal(integer)
+    
+    x = Decimal(x)
+    base = Decimal(base)
+    offset = Decimal(offset)
+
+    # Correcting the types for the operation
+    integer = math.floor((x - offset) / base)
+    return base * Decimal(integer) + offset
 
 
 def safe_is_nan(x):

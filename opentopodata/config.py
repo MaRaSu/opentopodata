@@ -19,6 +19,8 @@ AUX_EXTENSIONS = [".tfw", ".aux", ".aux.xml", ".rdd", ".jpw", ".ovr", ".prj", ".
 DEFAULTS = {
     "max_locations_per_request": 100,
     "dataset.filename_tile_size": 1,
+    "dataset.filename_tile_size_offset_x": 0,
+    "dataset.filename_tile_size_offset_y": 0,
     "dataset.filename_epsg": utils.WGS84_LATLON_EPSG,
     "access_control_allow_origin": None,
 }
@@ -255,12 +257,22 @@ class Dataset(abc.ABC):
             filename_tile_size = kwargs.get(
                 "filename_tile_size", DEFAULTS["dataset.filename_tile_size"]
             )
+            filename_tile_size_offset_x = kwargs.get(
+                "filename_tile_size_offset_x",
+                DEFAULTS["dataset.filename_tile_size_offset_x"],
+            )
+            filename_tile_size_offset_y = kwargs.get(
+                "filename_tile_size_offset_y",
+                DEFAULTS["dataset.filename_tile_size_offset_y"],
+            )
             return TiledDataset(
                 name,
                 path,
                 tile_paths=all_rasters,
                 filename_epsg=filename_epsg,
                 filename_tile_size=filename_tile_size,
+                filename_tile_size_offset_x=filename_tile_size_offset_x,
+                filename_tile_size_offset_y=filename_tile_size_offset_y,
                 wgs84_bounds=wgs84_bounds,
             )
 
@@ -321,6 +333,8 @@ class TiledDataset(Dataset):
         tile_paths,
         filename_epsg,
         filename_tile_size,
+        filename_tile_size_offset_x,
+        filename_tile_size_offset_y,
         wgs84_bounds=None,
     ):
         """A dataset of files named in SRTM format.
@@ -363,6 +377,9 @@ class TiledDataset(Dataset):
         except Exception as e:
             msg = f"Unable to parse filename_tile_size {filename_tile_size}"
             raise ConfigError(msg)
+        
+        self.filename_tile_size_offset_x = Decimal(filename_tile_size_offset_x)
+        self.filename_tile_size_offset_y = Decimal(filename_tile_size_offset_y)
 
         # Build tile lookup.
         corners = [self._filename_to_tile_corner(p) for p in tile_paths]
@@ -409,7 +426,7 @@ class TiledDataset(Dataset):
         return northing, easting
 
     @classmethod
-    def _location_to_tile_corner(cls, xs, ys, tile_size=1):
+    def _location_to_tile_corner(cls, xs, ys, tile_size=1, offset_x=0, offset_y=0):
         """Convert locations to SRTM tile corner.
 
         For example, (-120.5, 40.1) becomes (-120, 40). The lower left corner
@@ -419,13 +436,14 @@ class TiledDataset(Dataset):
         Args:
             xs, ys: Lists of x and y coordinates.
             tile_size: Which value to round the tiles to. Int or Decimal.
+            offset_x, offset_y: Offset from zero for tile_size. Int or Decimal.
 
         Returns:
             tile_names: List of (Decimal, Decimal) northing, easting tuples.
         """
 
-        northings = [utils.decimal_base_floor(y, tile_size) for y in ys]
-        eastings = [utils.decimal_base_floor(y, tile_size) for y in xs]
+        northings = [utils.decimal_base_floor(y, tile_size, offset_y) for y in ys]
+        eastings = [utils.decimal_base_floor(x, tile_size, offset_x) for x in xs]
 
         return list(zip(northings, eastings))
 
@@ -445,7 +463,7 @@ class TiledDataset(Dataset):
         xs, ys = utils.reproject_latlons(lats, lons, epsg=self.filename_epsg)
 
         # Find corresponding tile.
-        filenames = self._location_to_tile_corner(xs, ys, self.filename_tile_size)
+        filenames = self._location_to_tile_corner(xs, ys, self.filename_tile_size, self.filename_tile_size_offset_x, self.filename_tile_size_offset_y)
         paths = [self._tile_lookup.get(f) for f in filenames]
 
         return paths

@@ -76,6 +76,8 @@ def apply_cors(response):
             response.headers["access-control-allow-origin"] = _load_config()[
                 "access_control_allow_origin"
             ]
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     except config.ConfigError:
         # If the config isn't loading, allow the request to complete without
         # CORS so user can see error message.
@@ -435,6 +437,13 @@ def _get_datasets(name):
 
     return datasets
 
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    response = jsonify({'status': 'OK'})
+    response.headers['Access-Control-Allow-Origin'] = _load_config()["access_control_allow_origin"]
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 @app.route("/", methods=["GET", "POST", "OPTIONS", "HEAD"])
 @app.route("/v1/", methods=["GET", "POST", "OPTIONS", "HEAD"])

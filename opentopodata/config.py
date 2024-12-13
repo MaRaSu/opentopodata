@@ -403,26 +403,22 @@ class TiledDataset(Dataset):
         # Normalise if a full path is passed.
         filename = os.path.basename(filename)
 
-        # Extract components.
-        northing_str = (
-            re.search(r"([NS][\dx]+)_?[WE]", filename, re.IGNORECASE)[1]
-            .lower()
-            .replace("x", ".")
-        )
-        easting_str = (
-            re.search(r"[NS][\dx]+_?([WE][\dx]+)", filename, re.IGNORECASE)[1]
-            .lower()
-            .replace("x", ".")
-        )
+        regex = r"([NS]\d+)([WE]\d+)\.\w+$"
+        match = re.search(regex, filename, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Filename does not contain valid northing/easting pair: {filename}")
+
+        # Extract components
+        northing_str, easting_str = match.groups()
 
         # Positive or negative.
-        northing_sign = 1 if northing_str.startswith("n") else -1
-        easting_sign = 1 if easting_str.startswith("e") else -1
+        northing_sign = 1 if northing_str[0].upper() == "N" else -1
+        easting_sign = 1 if easting_str[0].upper() == "E" else -1
 
         # Numerics.
         northing = northing_sign * Decimal(northing_str[1:])
-        easting = easting_sign * Decimal(easting_str[1:])
-
+        easting = easting_sign * Decimal(easting_str[1:])        
+ 
         return northing, easting
 
     @classmethod

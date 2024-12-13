@@ -10,6 +10,9 @@ build-m1:
 run:
 	docker run --rm -it --volume "$(shell pwd)/data:/app/data:ro" -p 5000:5000 opentopodata:$(VERSION) 
 
+run_c1:
+	docker run --rm -it -e CONFIG_PATH="/app/data/config.yaml" --volume "/home/suomimar/local-data-hdd/dem_2m/hila_2m/opentopodata/data/:/app/data:ro" -p 5000:5000 opentopodata:$(VERSION) 
+
 daemon:
 	docker run --rm -itd --volume "$(shell pwd)/data:/app/data:ro" -p 5000:5000 opentopodata:$(VERSION) 
 
